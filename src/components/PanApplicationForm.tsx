@@ -46,6 +46,7 @@ function emptyForm(): PanApplicationInput & { _acceptDeclaration: boolean } {
     fathers_middle_name: null,
     mothers_last_name: null,
     mothers_first_name: null,
+    mothers_middle_name: null,
     mothers_name_flag: 'f',
     dob: '',
     gender: 'male',
@@ -256,9 +257,8 @@ export function PanApplicationForm() {
         </Field>
         <Field label={t.pan.mothersMiddleName}>
           <input className="field-input"
-            value={form.mothers_first_name ? '' : ''}
-            onChange={updateText('mothers_first_name')}
-            placeholder=""
+            value={form.mothers_middle_name ?? ''}
+            onChange={updateText('mothers_middle_name')}
           />
         </Field>
       </div>

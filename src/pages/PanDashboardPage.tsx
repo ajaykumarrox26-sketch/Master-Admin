@@ -1,14 +1,11 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import {
   ClipboardCheck,
   CreditCard,
   FileText,
   Headphones,
-  LifeBuoy,
   LogOut,
-  Send,
   Trash2,
-  CheckCircle2,
   ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
@@ -164,11 +161,12 @@ function MyApplicationsSection() {
 
   const handleRemove = async (app: PanApplication) => {
     if (!window.confirm(t.pan.removeConfirm)) return;
+    setRemoveError(null);
     try {
       await adminApi.removePanApplication(app.id);
       reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t.common.error);
+      setRemoveError(err instanceof Error ? err.message : t.common.error);
     }
   };
 

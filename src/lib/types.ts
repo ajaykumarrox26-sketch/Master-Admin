@@ -241,6 +241,7 @@ export interface PanApplication {
   fathers_middle_name: string | null;
   mothers_last_name: string | null;
   mothers_first_name: string | null;
+  mothers_middle_name: string | null;
   mothers_name_flag: PanMothersNameFlag;
   dob: string;
   gender: PanGender;
@@ -282,6 +283,7 @@ export interface PanApplicationInput {
   fathers_middle_name: string | null;
   mothers_last_name: string | null;
   mothers_first_name: string | null;
+  mothers_middle_name: string | null;
   mothers_name_flag: PanMothersNameFlag;
   dob: string;
   gender: PanGender;
