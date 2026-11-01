@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { CheckCircle2, Eye, XCircle, Clock } from 'lucide-react';
+import { CheckCircle2, Clock, Eye, XCircle } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { useLoader } from '@/lib/useLoader';
 import { formatDateTime } from '@/lib/format';
-import { Button, Card, Modal, Notice, PageHeader, Spinner, Badge, Field } from '@/components/ui';
+import { Badge, Button, Card, Field, Modal, Notice, PageHeader, Spinner } from '@/components/ui';
 import { PanApplicationDetail } from '@/components/PanApplicationDetail';
 import type { PanApplication, PanApplicationStatus } from '@/lib/types';
 
@@ -78,21 +78,13 @@ export function PanAdminReview() {
               <tbody className="divide-y divide-slate-100">
                 {applications.map((app) => (
                   <tr key={app.id} className="transition hover:bg-slate-50">
-                    <td className="table-cell font-mono text-xs font-semibold text-slate-900">
-                      {app.reference_number}
-                    </td>
-                    <td className="table-cell text-slate-700">
-                      {app.first_name} {app.last_name}
-                    </td>
+                    <td className="table-cell font-mono text-xs font-semibold text-slate-900">{app.reference_number}</td>
+                    <td className="table-cell text-slate-700">{app.first_name} {app.last_name}</td>
                     <td className="table-cell text-slate-600">{app.email}</td>
                     <td className="table-cell">
-                      <Badge tone={panStatusTone(app.status)}>
-                        {t.pan.statusLabels[app.status]}
-                      </Badge>
+                      <Badge tone={panStatusTone(app.status)}>{t.pan.statusLabels[app.status]}</Badge>
                     </td>
-                    <td className="table-cell whitespace-nowrap text-slate-600">
-                      {formatDateTime(app.created_at)}
-                    </td>
+                    <td className="table-cell whitespace-nowrap text-slate-600">{formatDateTime(app.created_at)}</td>
                     <td className="table-cell">
                       <div className="flex items-center gap-1">
                         <button
@@ -151,11 +143,7 @@ export function PanAdminReview() {
                 {!busy && <CheckCircle2 className="h-4 w-4" aria-hidden="true" />}
                 {t.pan.adminApprove}
               </Button>
-              <Button
-                variant="danger"
-                onClick={() => void submitReview('rejected')}
-                loading={busy}
-              >
+              <Button variant="danger" onClick={() => void submitReview('rejected')} loading={busy}>
                 {!busy && <XCircle className="h-4 w-4" aria-hidden="true" />}
                 {t.pan.adminReject}
               </Button>
