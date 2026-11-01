@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { CheckCircle2, Clock, Eye, XCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { CheckCircle2, Clock, Eye, Search, X, XCircle } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { useLoader } from '@/lib/useLoader';
@@ -28,8 +28,43 @@ export function PanAdminReview() {
   const [busy, setBusy] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewSuccess, setReviewSuccess] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | PanApplicationStatus>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
-  const applications = data ?? [];
+  const allApplications = data ?? [];
+
+  const filteredApplications = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const fromTime = dateFrom ? new Date(dateFrom + 'T00:00:00').getTime() : null;
+    const toTime = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : null;
+
+    return allApplications.filter((app) => {
+      if (statusFilter !== 'all' && app.status !== statusFilter) return false;
+      if (fromTime !== null && new Date(app.created_at).getTime() < fromTime) return false;
+      if (toTime !== null && new Date(app.created_at).getTime() > toTime) return false;
+      if (query) {
+        const haystack = [
+          app.first_name,
+          app.last_name,
+          app.email,
+          app.reference_number,
+        ].join(' ').toLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+      return true;
+    });
+  }, [allApplications, searchQuery, statusFilter, dateFrom, dateTo]);
+
+  const hasActiveFilters = searchQuery.trim() !== '' || statusFilter !== 'all' || dateFrom !== '' || dateTo !== '';
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setDateFrom('');
+    setDateTo('');
+  };
 
   const submitReview = async (decision: 'completed' | 'rejected' | 'in_review') => {
     if (!reviewApp) return;
@@ -57,60 +92,129 @@ export function PanAdminReview() {
       {error && <Notice tone="rose">{t.pan.adminReviewError}</Notice>}
       {loading && <Spinner />}
 
-      {!loading && applications.length === 0 && !error && (
+      {!loading && allApplications.length === 0 && !error && (
         <Card className="p-10 text-center text-sm text-slate-500">{t.pan.adminReviewEmpty}</Card>
       )}
 
-      {applications.length > 0 && (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-slate-200 bg-slate-50">
-                <tr>
-                  <th className="table-cell font-semibold text-slate-700">{t.pan.detailRef}</th>
-                  <th className="table-cell font-semibold text-slate-700">{t.pan.adminApplicant}</th>
-                  <th className="table-cell font-semibold text-slate-700">{t.pan.adminEmail}</th>
-                  <th className="table-cell font-semibold text-slate-700">{t.pan.detailStatus}</th>
-                  <th className="table-cell font-semibold text-slate-700">{t.pan.adminSubmittedOn}</th>
-                  <th className="table-cell font-semibold text-slate-700">{t.pan.adminActions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {applications.map((app) => (
-                  <tr key={app.id} className="transition hover:bg-slate-50">
-                    <td className="table-cell font-mono text-xs font-semibold text-slate-900">{app.reference_number}</td>
-                    <td className="table-cell text-slate-700">{app.first_name} {app.last_name}</td>
-                    <td className="table-cell text-slate-600">{app.email}</td>
-                    <td className="table-cell">
-                      <Badge tone={panStatusTone(app.status)}>{t.pan.statusLabels[app.status]}</Badge>
-                    </td>
-                    <td className="table-cell whitespace-nowrap text-slate-600">{formatDateTime(app.created_at)}</td>
-                    <td className="table-cell">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => setDetailApp(app)}
-                          className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-teal-800 transition hover:bg-teal-50"
-                        >
-                          <Eye className="h-3.5 w-3.5" aria-hidden="true" />
-                          {t.pan.viewDetail}
-                        </button>
-                        {app.status !== 'completed' && app.status !== 'rejected' && (
-                          <button
-                            onClick={() => { setReviewApp(app); setNote(''); setReviewError(null); }}
-                            className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                          >
-                            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-                            {t.pan.adminInReview}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+      {allApplications.length > 0 && (
+        <>
+          <Card className="mb-4 p-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+              <div className="flex-1">
+                <Field label={t.common.search}>
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                    <input
+                      type="text"
+                      className="field-input pl-10"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={t.pan.adminSearchPlaceholder}
+                    />
+                  </div>
+                </Field>
+              </div>
+              <div className="lg:w-52">
+                <Field label={t.pan.adminFilterStatus}>
+                  <select
+                    className="field-input"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as 'all' | PanApplicationStatus)}
+                  >
+                    <option value="all">{t.pan.adminFilterAll}</option>
+                    <option value="submitted">{t.pan.statusLabels.submitted}</option>
+                    <option value="in_review">{t.pan.statusLabels.in_review}</option>
+                    <option value="completed">{t.pan.statusLabels.completed}</option>
+                    <option value="rejected">{t.pan.statusLabels.rejected}</option>
+                  </select>
+                </Field>
+              </div>
+              <div className="lg:w-44">
+                <Field label={t.pan.adminFilterFromDate}>
+                  <input
+                    type="date"
+                    className="field-input"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                  />
+                </Field>
+              </div>
+              <div className="lg:w-44">
+                <Field label={t.pan.adminFilterToDate}>
+                  <input
+                    type="date"
+                    className="field-input"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                  />
+                </Field>
+              </div>
+              {hasActiveFilters && (
+                <Button variant="secondary" onClick={clearFilters}>
+                  <X className="h-4 w-4" aria-hidden="true" />
+                  {t.pan.adminClearFilters}
+                </Button>
+              )}
+            </div>
+            <p className="mt-3 text-xs font-medium text-slate-500">
+              {filteredApplications.length} {t.pan.adminResultsCount}
+            </p>
+          </Card>
+
+          {filteredApplications.length === 0 ? (
+            <Card className="p-10 text-center text-sm text-slate-500">{t.pan.adminNoResults}</Card>
+          ) : (
+            <Card className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-slate-200 bg-slate-50">
+                    <tr>
+                      <th className="table-cell font-semibold text-slate-700">{t.pan.detailRef}</th>
+                      <th className="table-cell font-semibold text-slate-700">{t.pan.adminApplicant}</th>
+                      <th className="table-cell font-semibold text-slate-700">{t.pan.adminEmail}</th>
+                      <th className="table-cell font-semibold text-slate-700">{t.pan.detailStatus}</th>
+                      <th className="table-cell font-semibold text-slate-700">{t.pan.adminSubmittedOn}</th>
+                      <th className="table-cell font-semibold text-slate-700">{t.pan.adminActions}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredApplications.map((app) => (
+                      <tr key={app.id} className="transition hover:bg-slate-50">
+                        <td className="table-cell font-mono text-xs font-semibold text-slate-900">{app.reference_number}</td>
+                        <td className="table-cell text-slate-700">{app.first_name} {app.last_name}</td>
+                        <td className="table-cell text-slate-600">{app.email}</td>
+                        <td className="table-cell">
+                          <Badge tone={panStatusTone(app.status)}>{t.pan.statusLabels[app.status]}</Badge>
+                        </td>
+                        <td className="table-cell whitespace-nowrap text-slate-600">{formatDateTime(app.created_at)}</td>
+                        <td className="table-cell">
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setDetailApp(app)}
+                              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-teal-800 transition hover:bg-teal-50"
+                            >
+                              <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                              {t.pan.viewDetail}
+                            </button>
+                            {app.status !== 'completed' && app.status !== 'rejected' && (
+                              <button
+                                onClick={() => { setReviewApp(app); setNote(''); setReviewError(null); }}
+                                className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                              >
+                                <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                                {t.pan.adminInReview}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </>
       )}
 
       <Modal open={detailApp !== null} title={t.pan.detailTitle} onClose={() => setDetailApp(null)}>
