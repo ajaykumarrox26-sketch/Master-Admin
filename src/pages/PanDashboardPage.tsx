@@ -12,12 +12,14 @@ import {
   Lock,
   LogOut,
   Mail,
+  Phone,
   ShieldCheck,
   ShieldAlert,
   Trash2,
   UserPlus,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { usePhoneAuth } from '@/lib/phoneAuth';
 import { useI18n } from '@/lib/i18n';
 import { adminApi } from '@/lib/api';
 import { useLoader } from '@/lib/useLoader';
@@ -28,6 +30,7 @@ import { HelplineForm } from '@/components/HelplineForm';
 import { ServiceApplicationSection } from '@/components/ServiceApplicationSection';
 import { PanDetailButton } from '@/components/PanApplicationDetail';
 import { PanAdminReview } from '@/components/PanAdminReview';
+import { OtpLogin } from '@/components/OtpLogin';
 import type { PanApplication, PanApplicationStatus } from '@/lib/types';
 
 type PanTab = 'panForm' | 'myApplications' | 'helpline' | 'applyServices' | 'adminReview';
@@ -43,9 +46,13 @@ async function loadPanApplications() {
   return adminApi.panApplications();
 }
 
+type LoginTab = 'otp' | 'email';
+
 function PanSignInGate() {
   const { t } = useI18n();
   const { signIn, signUp, sendPasswordReset } = useAuth();
+  const { status: phoneStatus } = usePhoneAuth();
+  const [loginTab, setLoginTab] = useState<LoginTab>('otp');
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -107,6 +114,40 @@ function PanSignInGate() {
     { icon: ShieldCheck, text: t.pan.loginFeature3 },
   ];
 
+  if (loginTab === 'otp') {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
+          <div className="flex justify-center">
+            <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setLoginTab('otp')}
+                className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
+                  loginTab === 'otp' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <Phone className="h-4 w-4" aria-hidden="true" />
+                {t.pan.otpTab}
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginTab('email')}
+                className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
+                  loginTab === 'email' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <Mail className="h-4 w-4" aria-hidden="true" />
+                {t.pan.emailTab}
+              </button>
+            </div>
+          </div>
+        </div>
+        <OtpLogin />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       {/* Left branding panel */}
@@ -162,6 +203,30 @@ function PanSignInGate() {
 
         <div className="flex flex-1 items-center justify-center px-4 py-10">
           <div className="w-full max-w-md animate-fade-up">
+            <div className="mb-5 flex justify-center">
+              <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setLoginTab('otp')}
+                  className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
+                    loginTab === 'otp' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <Phone className="h-4 w-4" aria-hidden="true" />
+                  {t.pan.otpTab}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLoginTab('email')}
+                  className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
+                    loginTab === 'email' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <Mail className="h-4 w-4" aria-hidden="true" />
+                  {t.pan.emailTab}
+                </button>
+              </div>
+            </div>
             <div className="mb-7">
               <h1 className="text-2xl font-bold text-slate-900">
                 {mode === 'signin' && t.pan.secureLogin}
@@ -395,9 +460,12 @@ function MyApplicationsSection() {
 export function PanDashboardPage() {
   const { t, lang, setLang } = useI18n();
   const { profile, status, signOut } = useAuth();
+  const { status: phoneStatus, phoneNumber, signOut: phoneSignOut } = usePhoneAuth();
   const [tab, setTab] = useState<PanTab>('panForm');
 
-  if (status === 'loading') {
+  const phoneAuthenticated = phoneStatus === 'authenticated';
+
+  if (status === 'loading' || phoneStatus === 'loading') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 text-sm text-slate-600">
         <Spinner />
@@ -406,9 +474,13 @@ export function PanDashboardPage() {
     );
   }
 
-  if (status !== 'admin') {
+  if (status !== 'admin' && !phoneAuthenticated) {
     return <PanSignInGate />;
   }
+
+  const isAdmin = profile?.role === 'owner' || profile?.role === 'admin';
+  const displayName = profile?.displayName || profile?.email || phoneNumber || '';
+  const handleSignOut = phoneAuthenticated ? phoneSignOut : signOut;
 
   const isAdmin = profile?.role === 'owner' || profile?.role === 'admin';
 
@@ -443,11 +515,11 @@ export function PanDashboardPage() {
               {t.common.language}
             </button>
             <div className="hidden text-right sm:block">
-              <p className="text-xs font-medium text-slate-700">{profile?.displayName || profile?.email}</p>
-              <p className="text-xs text-slate-500">{profile?.email}</p>
+              <p className="text-xs font-medium text-slate-700">{displayName}</p>
+              <p className="text-xs text-slate-500">{profile?.email || phoneNumber}</p>
             </div>
             <button
-              onClick={() => void signOut()}
+              onClick={() => void handleSignOut()}
               className="flex min-h-[44px] items-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
             >
               <LogOut className="h-4 w-4" aria-hidden="true" />
