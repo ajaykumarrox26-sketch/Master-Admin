@@ -309,3 +309,13 @@ export interface PanApplicationInput {
   pan_card_delivery_mode: PanDeliveryMode;
   signature_name: string | null;
 }
+
+export interface PanTimelineEntry {
+  id: string;
+  pan_application_id: string;
+  user_id: string;
+  status: PanApplicationStatus;
+  note: string | null;
+  actor_name: string;
+  created_at: string;
+}

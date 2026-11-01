@@ -26,6 +26,7 @@ import type {
   TransactionInput,
   PanApplication,
   PanApplicationInput,
+  PanTimelineEntry,
 } from '@/lib/types';
 
 interface QueryResult<T> {
@@ -269,6 +270,72 @@ export const adminApi = {
 
   removePanApplication: async (id: string) => {
     const { error } = await supabase.from('pan_applications').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+
+  panTimeline: async (applicationId: string) => {
+    const { data, error } = await supabase
+      .from('pan_application_timeline')
+      .select('*')
+      .eq('pan_application_id', applicationId)
+      .order('created_at', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data as PanTimelineEntry[];
+  },
+
+  uploadPanDocument: async (applicationId: string, file: File) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    const ext = file.name.split('.').pop() ?? 'bin';
+    const path = `${user.id}/${applicationId}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage
+      .from('pan-documents')
+      .upload(path, file, { contentType: file.type, upsert: false });
+    if (error) throw new Error('Could not upload this document.');
+  },
+
+  listPanDocuments: async (applicationId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    const { data, error } = await supabase.storage
+      .from('pan-documents')
+      .list(`${user.id}/${applicationId}`, { limit: 20 });
+    if (error || !data) throw new Error('Could not load the documents.');
+    return data.filter((item) => item.id !== null).map((item) => ({
+      name: item.name,
+      path: `${user.id}/${applicationId}/${item.name}`,
+      size: item.metadata?.size ?? 0,
+    }));
+  },
+
+  panDocumentLink: async (path: string) => {
+    const { data, error } = await supabase.storage
+      .from('pan-documents')
+      .createSignedUrl(path, 300);
+    if (error || !data) throw new Error('Could not open this document.');
+    return data.signedUrl;
+  },
+
+  removePanDocument: async (path: string) => {
+    const { error } = await supabase.storage.from('pan-documents').remove([path]);
+    if (error) throw new Error('Could not remove this document.');
+  },
+
+  allPanApplications: async () => {
+    const { data, error } = await supabase
+      .from('pan_applications')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data as PanApplication[];
+  },
+
+  reviewPanApplication: async (applicationId: string, decision: 'completed' | 'rejected' | 'in_review', note: string) => {
+    const { error } = await supabase.rpc('review_pan_application', {
+      p_application_id: applicationId,
+      p_decision: decision,
+      p_note: note || null,
+    });
     if (error) throw new Error(error.message);
   },
 };
