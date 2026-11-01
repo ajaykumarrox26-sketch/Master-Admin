@@ -7,19 +7,22 @@ import {
   LogOut,
   Trash2,
   ShieldCheck,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { adminApi } from '@/lib/api';
 import { useLoader } from '@/lib/useLoader';
 import { formatDateTime } from '@/lib/format';
-import { Button, Card, Field, Notice, PageHeader, Spinner, Badge } from '@/components/ui';
+import { Button, Card, Field, Modal, Notice, PageHeader, Spinner, Badge } from '@/components/ui';
 import { PanApplicationForm } from '@/components/PanApplicationForm';
 import { HelplineForm } from '@/components/HelplineForm';
 import { ServiceApplicationSection } from '@/components/ServiceApplicationSection';
+import { PanDetailButton } from '@/components/PanApplicationDetail';
+import { PanAdminReview } from '@/components/PanAdminReview';
 import type { PanApplication, PanApplicationStatus } from '@/lib/types';
 
-type PanTab = 'panForm' | 'myApplications' | 'helpline' | 'applyServices';
+type PanTab = 'panForm' | 'myApplications' | 'helpline' | 'applyServices' | 'adminReview';
 
 function panStatusTone(status: PanApplicationStatus): 'amber' | 'sky' | 'emerald' | 'rose' {
   if (status === 'submitted') return 'amber';
@@ -152,6 +155,7 @@ function MyApplicationsSection() {
   const { t } = useI18n();
   const { data, error, loading, reload } = useLoader(loadPanApplications);
   const applications = data ?? [];
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   const typeLabel = (type: string) => {
     if (type === 'new') return t.pan.typeNew;
@@ -169,8 +173,6 @@ function MyApplicationsSection() {
       setRemoveError(err instanceof Error ? err.message : t.common.error);
     }
   };
-
-  const [removeError, setRemoveError] = useState<string | null>(null);
 
   return (
     <div>
@@ -217,13 +219,16 @@ function MyApplicationsSection() {
                       {formatDateTime(app.created_at)}
                     </td>
                     <td className="table-cell">
-                      <button
-                        onClick={() => void handleRemove(app)}
-                        className="rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
-                        aria-label={t.pan.remove}
-                      >
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <PanDetailButton app={app} label={t.pan.viewDetail} />
+                        <button
+                          onClick={() => void handleRemove(app)}
+                          className="rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                          aria-label={t.pan.remove}
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -254,11 +259,16 @@ export function PanDashboardPage() {
     return <PanSignInGate />;
   }
 
+  const isAdmin = profile?.role === 'owner' || profile?.role === 'admin';
+
   const tabs: { key: PanTab; label: string; icon: typeof CreditCard }[] = [
     { key: 'panForm', label: t.pan.tabs.panForm, icon: CreditCard },
     { key: 'myApplications', label: t.pan.tabs.myApplications, icon: FileText },
     { key: 'helpline', label: t.pan.tabs.helpline, icon: Headphones },
     { key: 'applyServices', label: t.pan.tabs.applyServices, icon: ClipboardCheck },
+    ...(isAdmin
+      ? [{ key: 'adminReview' as PanTab, label: t.pan.tabsAdmin, icon: ShieldAlert }]
+      : []),
   ];
 
   return (
@@ -350,6 +360,12 @@ export function PanDashboardPage() {
         {tab === 'applyServices' && (
           <div className="animate-fade-up">
             <ServiceApplicationSection />
+          </div>
+        )}
+
+        {tab === 'adminReview' && isAdmin && (
+          <div className="animate-fade-up">
+            <PanAdminReview />
           </div>
         )}
       </main>
