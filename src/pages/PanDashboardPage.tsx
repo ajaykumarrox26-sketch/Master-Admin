@@ -482,8 +482,6 @@ export function PanDashboardPage() {
   const displayName = profile?.displayName || profile?.email || phoneNumber || '';
   const handleSignOut = phoneAuthenticated ? phoneSignOut : signOut;
 
-  const isAdmin = profile?.role === 'owner' || profile?.role === 'admin';
-
   const tabs: { key: PanTab; label: string; icon: typeof CreditCard }[] = [
     { key: 'panForm', label: t.pan.tabs.panForm, icon: CreditCard },
     { key: 'myApplications', label: t.pan.tabs.myApplications, icon: FileText },
