@@ -44,133 +44,41 @@ type LoginTab = 'otp' | 'email';
 
 function PanSignInGate() {
   const { t } = useI18n();
-  const { signIn, signUp, sendPasswordReset } = useAuth();
-  const { status: phoneStatus } = usePhoneAuth();
   const [loginTab, setLoginTab] = useState<LoginTab>('otp');
-  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
 
-  const switchMode = (next: 'signin' | 'signup' | 'forgot') => {
-    setMode(next);
-    setError(null);
-    setInfo(null);
-    setPassword('');
-    setConfirmPassword('');
-  };
-
-  const runAction = async (action: () => Promise<void>, onSuccess?: () => void) => {
-    setBusy(true);
-    setError(null);
-    try {
-      await action();
-      onSuccess?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t.common.error);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleSignIn = (e: FormEvent) => {
-    e.preventDefault();
-    void runAction(() => signIn(email.trim(), password));
-  };
-
-  const handleSignUp = (e: FormEvent) => {
-    e.preventDefault();
-    if (password !== confirmPassword) { setError(t.passwordMismatch); return; }
-    if (password.length < 10) { setError(t.passwordTooShort); return; }
-    void runAction(
-      () => signUp(email.trim(), password),
-      () => {
-        setPassword('');
-        setConfirmPassword('');
-        setInfo(t.accountCreated);
-      },
-    );
-  };
-
-  const handleForgot = (e: FormEvent) => {
-    e.preventDefault();
-    void runAction(() => sendPasswordReset(email.trim()), () => setInfo(t.resetSent));
-  };
-
-  const features = [
-    { icon: FileText, text: t.pan.loginFeature1 },
-    { icon: Activity, text: t.pan.loginFeature2 },
-    { icon: ShieldCheck, text: t.pan.loginFeature3 },
-  ];
-
-  if (loginTab === 'otp') {
-    return (
-      <div className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
-          <div className="flex justify-center">
-            <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-              <button
-                type="button"
-                onClick={() => setLoginTab('otp')}
-                className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
-                  loginTab === 'otp' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <Phone className="h-4 w-4" aria-hidden="true" />
-                {t.pan.otpTab}
-              </button>
-              <button
-                type="button"
-                onClick={() => setLoginTab('email')}
-                className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
-                  loginTab === 'email' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <Mail className="h-4 w-4" aria-hidden="true" />
-                {t.pan.emailTab}
-              </button>
-            </div>
-          </div>
-        </div>
-        <OtpLogin />
+  const tabSwitcher = (
+    <div className="flex justify-center">
+      <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setLoginTab('otp')}
+          className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
+            loginTab === 'otp' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          <Phone className="h-4 w-4" aria-hidden="true" />
+          {t.pan.otpTab}
+        </button>
+        <button
+          type="button"
+          onClick={() => setLoginTab('email')}
+          className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
+            loginTab === 'email' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          <Mail className="h-4 w-4" aria-hidden="true" />
+          {t.pan.emailTab}
+        </button>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
-        <div className="flex justify-center">
-          <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-            <button
-              type="button"
-              onClick={() => setLoginTab('otp')}
-              className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
-                loginTab === 'otp' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <Phone className="h-4 w-4" aria-hidden="true" />
-              {t.pan.otpTab}
-            </button>
-            <button
-              type="button"
-              onClick={() => setLoginTab('email')}
-              className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
-                loginTab === 'email' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <Mail className="h-4 w-4" aria-hidden="true" />
-              {t.pan.emailTab}
-            </button>
-          </div>
-        </div>
+        {tabSwitcher}
       </div>
-      <IppbLogin />
+      {loginTab === 'otp' ? <OtpLogin /> : <IppbLogin />}
     </div>
   );
 }
