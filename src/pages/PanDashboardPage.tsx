@@ -1,22 +1,15 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import {
-  Activity,
-  ArrowLeft,
   ClipboardCheck,
   CreditCard,
-  Eye,
-  EyeOff,
   FileText,
   Headphones,
   Landmark,
-  Lock,
   LogOut,
   Mail,
   Phone,
-  ShieldCheck,
   ShieldAlert,
   Trash2,
-  UserPlus,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { usePhoneAuth } from '@/lib/phoneAuth';
@@ -24,13 +17,14 @@ import { useI18n } from '@/lib/i18n';
 import { adminApi } from '@/lib/api';
 import { useLoader } from '@/lib/useLoader';
 import { formatDateTime } from '@/lib/format';
-import { Button, Card, Field, Modal, Notice, PageHeader, Spinner, Badge } from '@/components/ui';
+import { Card, Notice, PageHeader, Spinner, Badge } from '@/components/ui';
 import { PanApplicationForm } from '@/components/PanApplicationForm';
 import { HelplineForm } from '@/components/HelplineForm';
 import { ServiceApplicationSection } from '@/components/ServiceApplicationSection';
 import { PanDetailButton } from '@/components/PanApplicationDetail';
 import { PanAdminReview } from '@/components/PanAdminReview';
 import { OtpLogin } from '@/components/OtpLogin';
+import { IppbLogin } from '@/components/IppbLogin';
 import type { PanApplication, PanApplicationStatus } from '@/lib/types';
 
 type PanTab = 'panForm' | 'myApplications' | 'helpline' | 'applyServices' | 'adminReview';
@@ -149,220 +143,34 @@ function PanSignInGate() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      {/* Left branding panel */}
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-teal-800 via-teal-900 to-slate-900 p-10 lg:flex lg:w-[44%] xl:w-[40%] xl:p-14">
-        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-teal-400/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 -left-10 h-80 w-80 rounded-full bg-teal-500/10 blur-3xl" />
-
-        <div className="relative">
-          <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20 backdrop-blur-sm">
-              <Landmark className="h-7 w-7 text-teal-200" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-xl font-bold text-white">{t.pan.portalTitle}</p>
-              <p className="text-sm text-teal-200">{t.pan.portalSubtitle}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative space-y-8">
-          <h2 className="max-w-sm text-3xl font-bold leading-tight text-white">
-            {t.pan.loginHeading}
-          </h2>
-          <ul className="space-y-5">
-            {features.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-start gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15">
-                  <Icon className="h-4 w-4 text-teal-200" aria-hidden="true" />
-                </span>
-                <span className="pt-1.5 text-sm leading-relaxed text-teal-50">{text}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="relative flex items-center gap-2 text-sm text-teal-200">
-          <Lock className="h-4 w-4" aria-hidden="true" />
-          {t.pan.loginSecurityNote}
-        </div>
-      </div>
-
-      {/* Right form panel */}
-      <div className="flex flex-1 flex-col">
-        <div className="flex items-center justify-center gap-3 bg-gradient-to-r from-teal-800 to-teal-900 px-4 py-6 lg:hidden">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/20">
-            <Landmark className="h-6 w-6 text-teal-200" aria-hidden="true" />
-          </div>
-          <div className="text-center">
-            <p className="text-lg font-bold text-white">{t.pan.portalTitle}</p>
-            <p className="text-xs text-teal-200">{t.pan.portalSubtitle}</p>
-          </div>
-        </div>
-
-        <div className="flex flex-1 items-center justify-center px-4 py-10">
-          <div className="w-full max-w-md animate-fade-up">
-            <div className="mb-5 flex justify-center">
-              <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => setLoginTab('otp')}
-                  className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
-                    loginTab === 'otp' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  <Phone className="h-4 w-4" aria-hidden="true" />
-                  {t.pan.otpTab}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLoginTab('email')}
-                  className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
-                    loginTab === 'email' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  <Mail className="h-4 w-4" aria-hidden="true" />
-                  {t.pan.emailTab}
-                </button>
-              </div>
-            </div>
-            <div className="mb-7">
-              <h1 className="text-2xl font-bold text-slate-900">
-                {mode === 'signin' && t.pan.secureLogin}
-                {mode === 'signup' && t.createAccount}
-                {mode === 'forgot' && t.forgotPassword}
-              </h1>
-              <p className="mt-1.5 text-sm text-slate-600">
-                {mode === 'signin' && t.pan.signInPrompt}
-                {mode === 'signup' && t.pan.signUpPrompt}
-                {mode === 'forgot' && t.pan.forgotPrompt}
-              </p>
-            </div>
-
-            <div className="card-surface p-6 sm:p-8">
-              {mode === 'signin' && (
-                <form onSubmit={handleSignIn} className="space-y-5">
-                  <Field label={t.email}>
-                    <div className="relative">
-                      <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                      <input className="field-input pl-10" type="email" autoComplete="username" required
-                        value={email} onChange={(e) => setEmail(e.target.value)} />
-                    </div>
-                  </Field>
-                  <Field label={t.password}>
-                    <div className="relative">
-                      <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                      <input className="field-input px-10" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required
-                        value={password} onChange={(e) => setPassword(e.target.value)} />
-                      <button type="button" onClick={() => setShowPassword((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}>
-                        {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
-                      </button>
-                    </div>
-                  </Field>
-                  {error && <Notice tone="rose">{error}</Notice>}
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 text-sm text-slate-700">
-                      <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600" />
-                      {t.pan.loginRememberMe}
-                    </label>
-                    <button type="button" onClick={() => switchMode('forgot')}
-                      className="text-sm font-medium text-teal-700 transition hover:text-teal-800 hover:underline">
-                      {t.pan.loginForgotPassword}
-                    </button>
-                  </div>
-                  <Button type="submit" loading={busy} className="w-full">
-                    {!busy && <Lock className="h-4 w-4" aria-hidden="true" />}
-                    {busy ? t.signingIn : t.signIn}
-                  </Button>
-                  <p className="text-center text-sm text-slate-600">
-                    {t.pan.newToPortal}{' '}
-                    <button type="button" onClick={() => switchMode('signup')}
-                      className="font-semibold text-teal-700 transition hover:text-teal-800 hover:underline">
-                      {t.launcher.goCreateAccount}
-                    </button>
-                  </p>
-                </form>
-              )}
-
-              {mode === 'signup' && (
-                <form onSubmit={handleSignUp} className="space-y-5">
-                  <Field label={t.email}>
-                    <div className="relative">
-                      <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                      <input className="field-input pl-10" type="email" autoComplete="username" required
-                        value={email} onChange={(e) => setEmail(e.target.value)} />
-                    </div>
-                  </Field>
-                  <Field label={t.password}>
-                    <div className="relative">
-                      <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                      <input className="field-input px-10" type={showPassword ? 'text' : 'password'} autoComplete="new-password" required
-                        value={password} onChange={(e) => setPassword(e.target.value)} />
-                      <button type="button" onClick={() => setShowPassword((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}>
-                        {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
-                      </button>
-                    </div>
-                  </Field>
-                  <Field label={t.confirmPassword}>
-                    <div className="relative">
-                      <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                      <input className="field-input pl-10" type={showPassword ? 'text' : 'password'} autoComplete="new-password" required
-                        value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-                    </div>
-                  </Field>
-                  {error && <Notice tone="rose">{error}</Notice>}
-                  {info && <Notice tone="emerald">{info}</Notice>}
-                  {!info && (
-                    <Button type="submit" loading={busy} className="w-full">
-                      {!busy && <UserPlus className="h-4 w-4" aria-hidden="true" />}
-                      {busy ? t.creatingAccount : t.createAccount}
-                    </Button>
-                  )}
-                  <button type="button" onClick={() => switchMode('signin')}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-slate-700 transition hover:underline">
-                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                    {t.backToSignIn}
-                  </button>
-                </form>
-              )}
-
-              {mode === 'forgot' && (
-                <form onSubmit={handleForgot} className="space-y-5">
-                  <Field label={t.email}>
-                    <div className="relative">
-                      <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                      <input className="field-input pl-10" type="email" autoComplete="username" required
-                        value={email} onChange={(e) => setEmail(e.target.value)} />
-                    </div>
-                  </Field>
-                  {error && <Notice tone="rose">{error}</Notice>}
-                  {info && <Notice tone="emerald">{info}</Notice>}
-                  <Button type="submit" loading={busy} className="w-full">
-                    {!busy && <Mail className="h-4 w-4" aria-hidden="true" />}
-                    {t.sendResetLink}
-                  </Button>
-                  <button type="button" onClick={() => switchMode('signin')}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-slate-700 transition hover:underline">
-                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                    {t.backToSignIn}
-                  </button>
-                </form>
-              )}
-            </div>
-
-            <p className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-500">
-              <Lock className="h-3.5 w-3.5" aria-hidden="true" />
-              {t.pan.loginSecurityNote}
-            </p>
+    <div className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
+        <div className="flex justify-center">
+          <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setLoginTab('otp')}
+              className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
+                loginTab === 'otp' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <Phone className="h-4 w-4" aria-hidden="true" />
+              {t.pan.otpTab}
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginTab('email')}
+              className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
+                loginTab === 'email' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <Mail className="h-4 w-4" aria-hidden="true" />
+              {t.pan.emailTab}
+            </button>
           </div>
         </div>
       </div>
+      <IppbLogin />
     </div>
   );
 }
