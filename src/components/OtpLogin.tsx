@@ -118,7 +118,7 @@ export function OtpLogin() {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <div id="recaptcha-container" />
+      <div id="recaptcha-container" className="fixed bottom-4 right-4 z-50" />
 
       {/* Left branding panel */}
       <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-teal-800 via-teal-900 to-slate-900 p-10 lg:flex lg:w-[44%] xl:w-[40%] xl:p-14">
