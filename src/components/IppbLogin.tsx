@@ -169,6 +169,12 @@ export function IppbLogin() {
   const handleForgot = (e: FormEvent) => {
     e.preventDefault();
     if (!email.trim()) { setError('Please enter your email address.'); return; }
+    if (captchaInput.trim().toUpperCase() !== captchaTextRef.current.toUpperCase()) {
+      setError(t.pan.ippbCaptchaMismatch);
+      refreshCaptcha();
+      setCaptchaInput('');
+      return;
+    }
 
     void runAction(async () => {
       if (firebaseConfigured && auth) {
@@ -432,6 +438,38 @@ export function IppbLogin() {
                     placeholder={t.pan.ippbEmailPlaceholder}
                   />
                 </div>
+              </Field>
+
+              <Field label={t.pan.ippbTextVerification}>
+                <div className="flex items-stretch gap-2">
+                  <canvas
+                    ref={canvasRef}
+                    width={180}
+                    height={50}
+                    className="rounded-lg border border-slate-300 bg-slate-50"
+                    aria-label="Captcha image"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { refreshCaptcha(); setCaptchaInput(''); }}
+                    className="flex shrink-0 items-center justify-center rounded-lg border border-slate-300 px-3 text-slate-500 transition hover:bg-slate-50 hover:text-teal-700"
+                    aria-label={t.pan.ippbRefreshCaptcha}
+                    title={t.pan.ippbRefreshCaptcha}
+                  >
+                    <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+                <input
+                  className="field-input mt-2"
+                  type="text"
+                  required
+                  value={captchaInput}
+                  onChange={(e) => setCaptchaInput(e.target.value.toUpperCase())}
+                  placeholder={t.pan.ippbCaptchaPlaceholder}
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
               </Field>
 
               {error && <Notice tone="rose">{error}</Notice>}

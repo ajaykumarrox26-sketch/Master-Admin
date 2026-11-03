@@ -6,13 +6,10 @@ import {
   Headphones,
   Landmark,
   LogOut,
-  Mail,
-  Phone,
   ShieldAlert,
   Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { usePhoneAuth } from '@/lib/phoneAuth';
 import { useI18n } from '@/lib/i18n';
 import { adminApi } from '@/lib/api';
 import { useLoader } from '@/lib/useLoader';
@@ -23,7 +20,6 @@ import { HelplineForm } from '@/components/HelplineForm';
 import { ServiceApplicationSection } from '@/components/ServiceApplicationSection';
 import { PanDetailButton } from '@/components/PanApplicationDetail';
 import { PanAdminReview } from '@/components/PanAdminReview';
-import { OtpLogin } from '@/components/OtpLogin';
 import { IppbLogin } from '@/components/IppbLogin';
 import type { PanApplication, PanApplicationStatus } from '@/lib/types';
 
@@ -43,44 +39,7 @@ async function loadPanApplications() {
 type LoginTab = 'otp' | 'email';
 
 function PanSignInGate() {
-  const { t } = useI18n();
-  const [loginTab, setLoginTab] = useState<LoginTab>('otp');
-
-  const tabSwitcher = (
-    <div className="flex justify-center">
-      <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-        <button
-          type="button"
-          onClick={() => setLoginTab('otp')}
-          className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
-            loginTab === 'otp' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
-          }`}
-        >
-          <Phone className="h-4 w-4" aria-hidden="true" />
-          {t.pan.otpTab}
-        </button>
-        <button
-          type="button"
-          onClick={() => setLoginTab('email')}
-          className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${
-            loginTab === 'email' ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'
-          }`}
-        >
-          <Mail className="h-4 w-4" aria-hidden="true" />
-          {t.pan.emailTab}
-        </button>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
-        {tabSwitcher}
-      </div>
-      {loginTab === 'otp' ? <OtpLogin /> : <IppbLogin />}
-    </div>
-  );
+  return <IppbLogin />;
 }
 
 function MyApplicationsSection() {
@@ -176,12 +135,9 @@ function MyApplicationsSection() {
 export function PanDashboardPage() {
   const { t, lang, setLang } = useI18n();
   const { profile, status, signOut } = useAuth();
-  const { status: phoneStatus, phoneNumber, signOut: phoneSignOut } = usePhoneAuth();
   const [tab, setTab] = useState<PanTab>('panForm');
 
-  const phoneAuthenticated = phoneStatus === 'authenticated';
-
-  if (status === 'loading' || phoneStatus === 'loading') {
+  if (status === 'loading') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 text-sm text-slate-600">
         <Spinner />
@@ -190,13 +146,13 @@ export function PanDashboardPage() {
     );
   }
 
-  if (status !== 'admin' && !phoneAuthenticated) {
+  if (status !== 'admin') {
     return <PanSignInGate />;
   }
 
   const isAdmin = profile?.role === 'owner' || profile?.role === 'admin';
-  const displayName = profile?.displayName || profile?.email || phoneNumber || '';
-  const handleSignOut = phoneAuthenticated ? phoneSignOut : signOut;
+  const displayName = profile?.displayName || profile?.email || '';
+  const handleSignOut = signOut;
 
   const tabs: { key: PanTab; label: string; icon: typeof CreditCard }[] = [
     { key: 'panForm', label: t.pan.tabs.panForm, icon: CreditCard },
@@ -230,7 +186,7 @@ export function PanDashboardPage() {
             </button>
             <div className="hidden text-right sm:block">
               <p className="text-xs font-medium text-slate-700">{displayName}</p>
-              <p className="text-xs text-slate-500">{profile?.email || phoneNumber}</p>
+              <p className="text-xs text-slate-500">{profile?.email}</p>
             </div>
             <button
               onClick={() => void handleSignOut()}
