@@ -7,14 +7,10 @@ import {
   Mail,
   RefreshCw,
   ShieldCheck,
-  UserPlus,
 } from 'lucide-react';
 import {
-  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
-  onAuthStateChanged,
-  type User as FirebaseUser,
 } from 'firebase/auth';
 import { auth, firebaseConfigured } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth';
@@ -22,9 +18,7 @@ import { useI18n } from '@/lib/i18n';
 import { Button, Field, Notice } from '@/components/ui';
 import { generateCaptchaText, drawCaptcha } from '@/lib/captcha';
 
-type IppbMode = 'signin' | 'signup' | 'forgot';
-
-const MIN_PASSWORD_LENGTH = 8;
+type IppbMode = 'signin' | 'forgot';
 
 function firebaseAuthError(err: unknown): string {
   const code = (err as { code?: string })?.code ?? '';
@@ -45,12 +39,11 @@ function firebaseAuthError(err: unknown): string {
 
 export function IppbLogin() {
   const { t } = useI18n();
-  const { signIn: supabaseSignIn, signUp: supabaseSignUp, sendPasswordReset } = useAuth();
+  const { signIn: supabaseSignIn, sendPasswordReset } = useAuth();
 
   const [mode, setMode] = useState<IppbMode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [captchaInput, setCaptchaInput] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -73,22 +66,11 @@ export function IppbLogin() {
     refreshCaptcha();
   }, [refreshCaptcha, mode]);
 
-  useEffect(() => {
-    if (!firebaseConfigured || !auth) return;
-    const unsub = onAuthStateChanged(auth, (user: FirebaseUser | null) => {
-      if (user) {
-        setInfo(`Firebase session active: ${user.email}`);
-      }
-    });
-    return () => unsub();
-  }, []);
-
   const switchMode = (next: IppbMode) => {
     setMode(next);
     setError(null);
     setInfo(null);
     setPassword('');
-    setConfirmPassword('');
     setCaptchaInput('');
   };
 
@@ -123,46 +105,8 @@ export function IppbLogin() {
         } catch (err) {
           throw new Error(firebaseAuthError(err));
         }
-      } else {
-        await supabaseSignIn(email.trim(), password);
       }
-    });
-  };
-
-  const handleSignUp = (e: FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) { setError('Please enter your email address.'); return; }
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError(t.passwordMismatch);
-      return;
-    }
-    if (captchaInput.trim().toUpperCase() !== captchaTextRef.current.toUpperCase()) {
-      setError(t.pan.ippbCaptchaMismatch);
-      refreshCaptcha();
-      setCaptchaInput('');
-      return;
-    }
-
-    void runAction(async () => {
-      if (firebaseConfigured && auth) {
-        try {
-          await createUserWithEmailAndPassword(auth, email.trim(), password);
-        } catch (err) {
-          throw new Error(firebaseAuthError(err));
-        }
-      } else {
-        await supabaseSignUp(email.trim(), password);
-      }
-    }, () => {
-      setInfo(t.pan.ippbAccountCreated);
-      setPassword('');
-      setConfirmPassword('');
-      setCaptchaInput('');
-      refreshCaptcha();
+      await supabaseSignIn(email.trim(), password);
     });
   };
 
@@ -301,125 +245,6 @@ export function IppbLogin() {
                 {!busy && <ShieldCheck className="h-4 w-4" aria-hidden="true" />}
                 {busy ? t.pan.ippbSigningIn : t.pan.ippbSignIn}
               </Button>
-
-              <p className="text-center text-sm text-slate-600">
-                {t.pan.ippbNoAccount}{' '}
-                <button
-                  type="button"
-                  onClick={() => switchMode('signup')}
-                  className="font-semibold text-teal-700 transition hover:text-teal-800 hover:underline"
-                >
-                  {t.pan.ippbCreateAccount}
-                </button>
-              </p>
-            </form>
-          )}
-
-          {mode === 'signup' && (
-            <form onSubmit={handleSignUp} className="space-y-5">
-              <Field label={t.pan.ippbEmailAddress}>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                  <input
-                    className="field-input pl-10"
-                    type="email"
-                    autoComplete="username"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t.pan.ippbEmailPlaceholder}
-                  />
-                </div>
-              </Field>
-
-              <Field label={t.pan.ippbPassword}>
-                <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                  <input
-                    className="field-input px-10"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t.pan.ippbPasswordPlaceholder}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
-                  </button>
-                </div>
-              </Field>
-
-              <Field label={t.pan.ippbConfirmPassword}>
-                <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                  <input
-                    className="field-input pl-10"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder={t.pan.ippbPasswordPlaceholder}
-                  />
-                </div>
-              </Field>
-
-              <Field label={t.pan.ippbTextVerification}>
-                <div className="flex items-stretch gap-2">
-                  <canvas
-                    ref={canvasRef}
-                    width={180}
-                    height={50}
-                    className="rounded-lg border border-slate-300 bg-slate-50"
-                    aria-label="Captcha image"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => { refreshCaptcha(); setCaptchaInput(''); }}
-                    className="flex shrink-0 items-center justify-center rounded-lg border border-slate-300 px-3 text-slate-500 transition hover:bg-slate-50 hover:text-teal-700"
-                    aria-label={t.pan.ippbRefreshCaptcha}
-                    title={t.pan.ippbRefreshCaptcha}
-                  >
-                    <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </div>
-                <input
-                  className="field-input mt-2"
-                  type="text"
-                  required
-                  value={captchaInput}
-                  onChange={(e) => setCaptchaInput(e.target.value.toUpperCase())}
-                  placeholder={t.pan.ippbCaptchaPlaceholder}
-                  autoCapitalize="characters"
-                  autoCorrect="off"
-                  spellCheck={false}
-                />
-              </Field>
-
-              {error && <Notice tone="rose">{error}</Notice>}
-              {info && <Notice tone="emerald">{info}</Notice>}
-
-              {!info && (
-                <Button type="submit" loading={busy} className="w-full">
-                  {!busy && <UserPlus className="h-4 w-4" aria-hidden="true" />}
-                  {busy ? t.pan.ippbCreatingAccount : t.pan.ippbCreateAccount}
-                </Button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => switchMode('signin')}
-                className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-slate-700 transition hover:underline"
-              >
-                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                {t.pan.ippbBackToSignIn}
-              </button>
             </form>
           )}
 
