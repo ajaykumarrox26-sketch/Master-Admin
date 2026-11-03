@@ -17,11 +17,12 @@ export type AuthStatus = 'loading' | 'signed_out' | 'pending' | 'blocked' | 'una
 interface AuthContextValue {
   status: AuthStatus;
   profile: AdminProfile | null;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, remember: boolean) => Promise<void>;
   signOut: () => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
+  updateProfile: (displayName: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -40,6 +41,11 @@ async function loadProfile(session: Session): Promise<AdminProfile | null> {
     role: data.role as AdminRole,
     displayName: data.display_name,
   };
+}
+
+async function updateAdminProfile(displayName: string): Promise<void> {
+  const { error } = await supabase.rpc('update_admin_profile', { p_display_name: displayName });
+  if (error) throw new Error(error.message);
 }
 
 async function requestAdminAccess(): Promise<'pending' | 'blocked'> {
@@ -117,9 +123,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       profile,
       signOut,
-      signIn: async (email, password) => {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+      signIn: async (email, password, remember) => {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw new Error(error.message);
+        if (!remember && data.session) {
+          await supabase.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          });
+          try { sessionStorage.setItem('sb-remember', 'false'); } catch { /* ignore */ }
+        }
       },
       signUp: async (email, password) => {
         const { error } = await supabase.auth.signUp({ email, password });
@@ -134,6 +147,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       updatePassword: async (password) => {
         const { error } = await supabase.auth.updateUser({ password });
         if (error) throw new Error(error.message);
+      },
+      updateProfile: async (displayName) => {
+        await updateAdminProfile(displayName);
+        if (profile) {
+          setProfile({ ...profile, displayName });
+        }
       },
     }),
     [status, profile, signOut],
