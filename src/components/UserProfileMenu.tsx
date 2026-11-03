@@ -5,7 +5,6 @@ import {
   LogOut,
   Mail,
   Shield,
-  User,
   Pencil,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';

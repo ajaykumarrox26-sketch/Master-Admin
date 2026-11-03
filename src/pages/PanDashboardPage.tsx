@@ -5,7 +5,6 @@ import {
   FileText,
   Headphones,
   Landmark,
-  LogOut,
   ShieldAlert,
   Trash2,
 } from 'lucide-react';
@@ -21,6 +20,7 @@ import { ServiceApplicationSection } from '@/components/ServiceApplicationSectio
 import { PanDetailButton } from '@/components/PanApplicationDetail';
 import { PanAdminReview } from '@/components/PanAdminReview';
 import { IppbLogin } from '@/components/IppbLogin';
+import { UserProfileMenu } from '@/components/UserProfileMenu';
 import type { PanApplication, PanApplicationStatus } from '@/lib/types';
 
 type PanTab = 'panForm' | 'myApplications' | 'helpline' | 'applyServices' | 'adminReview';
@@ -134,7 +134,7 @@ function MyApplicationsSection() {
 
 export function PanDashboardPage() {
   const { t, lang, setLang } = useI18n();
-  const { profile, status, signOut } = useAuth();
+  const { profile, status } = useAuth();
   const [tab, setTab] = useState<PanTab>('panForm');
 
   if (status === 'loading') {
@@ -151,8 +151,6 @@ export function PanDashboardPage() {
   }
 
   const isAdmin = profile?.role === 'owner' || profile?.role === 'admin';
-  const displayName = profile?.displayName || profile?.email || '';
-  const handleSignOut = signOut;
 
   const tabs: { key: PanTab; label: string; icon: typeof CreditCard }[] = [
     { key: 'panForm', label: t.pan.tabs.panForm, icon: CreditCard },
@@ -184,17 +182,7 @@ export function PanDashboardPage() {
             >
               {t.common.language}
             </button>
-            <div className="hidden text-right sm:block">
-              <p className="text-xs font-medium text-slate-700">{displayName}</p>
-              <p className="text-xs text-slate-500">{profile?.email}</p>
-            </div>
-            <button
-              onClick={() => void handleSignOut()}
-              className="flex min-h-[44px] items-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
-            >
-              <LogOut className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden sm:inline">{t.signOut}</span>
-            </button>
+            <UserProfileMenu />
           </div>
         </div>
 

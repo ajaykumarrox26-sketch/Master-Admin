@@ -106,7 +106,7 @@ export function IppbLogin() {
           throw new Error(firebaseAuthError(err));
         }
       }
-      await supabaseSignIn(email.trim(), password);
+      await supabaseSignIn(email.trim(), password, rememberMe);
     });
   };
 
